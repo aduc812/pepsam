@@ -268,7 +268,7 @@ import math
 import sys
 
 def beep_once():
-'''this function only makes sense if run on localhost
+    '''this function only makes sense if run on localhost
 As this is not an intended use of the package anymore, 
 It is commented out'''
     pass
