@@ -55,7 +55,10 @@ def _expr_set_from_dict(expr_set_dict):
 ###############################################################################   
 from sage.structure.sage_object import SageObject 
 #@_add_decorated_methods_from_sage_expr(_element_wise)
-class Expr_set (SageObject):#(sage_expr): #
+class Expr_set (
+                #SageObject # SageObject cannot be pickled
+
+                ):#(sage_expr): #
 
     def __init__(self,iterable=[]):
         self._explist=tuple([SR(i) for i in iterable])

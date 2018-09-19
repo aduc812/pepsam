@@ -36,7 +36,7 @@ if no prompt specified, a Dirac delta-function is assumed
 '''
 
     def __init__(self, dataset, dataset_args={},
-                 prompt=None, prompt_args={}, conv_method='time',
+                 prompt=None, prompt_args={}, conv_method='time',plot_multithreading=True,_pool=None,_callback=lambda:None,
                  #xrange=[-np.infty,+np.infty], # this was intended to override  both xranges for prompt and dataset
                  **kwargs):
         '''\
@@ -48,6 +48,9 @@ Input:
 '''
         self.dataset = dataset
         self.dataset_kwargs = dataset_args
+        self.plot_multithreading=plot_multithreading
+        self._pool=_pool
+        self._callback=_callback
         
         try:
             (self.xCol,self.yCol,self.Weights)=map (np.array,dataset.get_table(**dataset_args))
@@ -290,39 +293,79 @@ Input:
          fname_res  = None if fname_com is None else 'res_' + fname_com
          #from sage.repl.rich_output import pretty_print 
          #pretty_print(html('<table><tr><td>'))
-         (
-            list_plot(
-                   zip(
+         
+         
+         
+         model_xypairs=zip(
                        self.xCol,
                        self.residual_function(result.params,self.xCol)    
-                       ),
-                   plotjoined=True,color='red',
-                   **kwargs)\
-            + self.dataset.plot2d(**self.dataset_kwargs)
-         ).show(#filename=fname_plot,
-                figsize=[6,3],
-                ymax=np.max(self.yCol)*1.1,
-                ymin=min(np.min(self.yCol),np.max(self.yCol)/100),
-                scale=scale
-                ) 
-         resid_plt=list_plot(zip(
+                       )
+         dataset_xypairs=zip(*self.dataset.get_table(**self.dataset_kwargs))
+         resid_xypairs=zip(
                            self.xCol-self.xCol[0]+self.xCol[1],
                            self.residual_function(result.params,self.xCol,self.yCol)
-                       ),
-                       size=self.dataset_kwargs['size'], color='blue',
                        )
-         resid_plt.show(#filename=fname_res,
-                        figsize=[6,3],scale=res_scale)
-         #plotfast(resid_plt,scale=res_scale)
-         #if fname_com is not None:
-           #  pretty_print(html('<table><tr><td>')) 
-             #html('<img src="'+fname_plot+'">')
-           #  pretty_print(html('</td></tr><tr><td>'))
-             #html('<img src="'+fname_res+'">')
-           #  pretty_print(html('</td></tr></table>'))
-          #   pretty_print(html('</td><td>'))
-         peFit.display_fit(self,result,**kwargs)
-         #pretty_print(html('</td></tr></table>'))
+         main_plot_kwargs=dict(
+                    figsize=[6,3],
+                    ymax=np.max(self.yCol)*1.1,
+                    ymin=min(np.min(self.yCol),np.max(self.yCol)/100.),
+                    scale=scale
+                    ) 
+         resid_plot_kwargs=dict(figsize=[6,3],scale=res_scale)
+         
+         if (self._pool is None):
+            main_plt=list_plot(model_xypairs,
+                       plotjoined=True,color='red',
+                       **kwargs)
+            #allowed_opts=sage.plot.point.Point((0,1),(0,1),{})._allowed_options()
+            #newopts = {k: self.dataset_kwargs[k] for k in allowed_opts if k in self.dataset_kwargs}
+            main_plt += list_plot(dataset_xypairs,**self.dataset_kwargs)#+ self.dataset.plot2d(**self.dataset_kwargs)
+            
+            resid_plt=list_plot(resid_xypairs,
+                           size=self.dataset_kwargs['size'], color='blue',
+            )
+             # MatPlotLib is not thread-safe.. unfortunately.
+             #if(self.plot_multithreading): 
+             #def _plotfunction():
+            main_plt.show(**main_plot_kwargs)
+            resid_plt.show(**resid_plot_kwargs)
+            peFit.display_fit(self,result,**kwargs)
+             #from threading import Thread
+             #Thread(target=_plotfunction).start()
+
+         else:
+            def _plotfunction(model_xypairs,dataset_xypairs,kwargs,dataset_kwargs,main_plot_kwargs,resid_plot_kwargs):
+                #with open('/home/aduc812/testfile','a') as f:
+                #    f.write('%s\n'% 'launched')
+                try:
+                    import tempfile
+                    tmpfiles=[tempfile.NamedTemporaryFile(suffix='.png',delete=True) for ctr in (0,1)]#get two temp files for main plot and resid
+                    main_plt=list_plot(model_xypairs,
+                       plotjoined=True,color='red',
+                       **kwargs)
+                    main_plt += list_plot(dataset_xypairs,**dataset_kwargs)
+                    
+                    resid_plt=list_plot(resid_xypairs,
+                                   size=dataset_kwargs['size'], color='blue',
+                    )
+                    main_plt.save(filename=tmpfiles[0], **main_plot_kwargs)
+                    resid_plt.save(filename=tmpfiles[1], **resid_plot_kwargs)
+                    peFit.display_fit(self,result,**kwargs)
+                except Exception as expp:
+                    return expp
+                return tmpfiles
+            import pickle
+            
+            for key in self.dataset_kwargs:
+                print key
+                pickle.dumps(self.dataset_kwargs[key])
+
+            #res=self._pool.apply_async(func=_plotfunction , args=(model_xypairs,dataset_xypairs,kwargs,self.dataset_kwargs,main_plot_kwargs,resid_plot_kwargs),callback=self._callback)
+            #res.wait(10)
+            #print res.get()
+         
+            
+                
          
     def make_params(self,nexp=3,ultrafast=False,print_mode=True):
         params = Parameters()

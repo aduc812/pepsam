@@ -226,7 +226,10 @@ class MultifitResult(object):
                 yelx.append(xypair[0])
                 yely.append(xypair[1])                
                 
-            elif fit.covar is None:
+            elif not hasattr(fit,'covar'):
+                redx.append(xypair[0])
+                redy.append(xypair[1])
+            elif fit.covar is None :
                 redx.append(xypair[0])
                 redy.append(xypair[1])
             else:
@@ -354,7 +357,7 @@ class MultifitResult(object):
                 
         
 class peMultiFit (object):
-    def __init__(self,fit_method,method_kwdlist,init_parameters,func_to_get_fit_id = lambda i,kwds:i,import_result=None,import_param_names={},ranges_dict={},out_of_range_vals={}):
+    def __init__(self,fit_method,method_kwdlist,init_parameters,func_to_get_fit_id = lambda i,kwds:i,import_result=None,import_param_names={},ranges_dict={},out_of_range_vals={},drawing_processes=0):
         self.fit_method=fit_method
         self.method_kwdlist=list(method_kwdlist)
         self.init_parameters=init_parameters
@@ -365,6 +368,8 @@ class peMultiFit (object):
         self.import_param_names=import_param_names
         self.ranges_dict=ranges_dict
         self.out_of_range_vals=out_of_range_vals
+        self.drawing_processes=drawing_processes
+        #self._pool=None
         
     def fit_one(self,i,prev_params,**kwargs) :
     
@@ -398,10 +403,17 @@ class peMultiFit (object):
         # print progress
         if showprogress:
             print 'fit %d of %d: %s' % (i, len(self.method_kwdlist),fit_id)
+
+        if (self.drawing_processes > 0):# and (not(self._pool is None)):  
+            param_set['_pool']=self._pool
+            param_set['_callback']=self._clbk_showimg
         cvfitter=self.fit_method(**param_set)
         displayargs=kwargs.pop('displayargs',{})
         displayargs.update(dict(filename='fit'+str(i)+'.png',))
         kwargs['displayargs']=displayargs
+        
+
+            
         this_result=cvfitter.fit(prev_params,display=displayfit,**kwargs)
         
         self.result.append(fit_id,this_result,i)
@@ -412,11 +424,20 @@ class peMultiFit (object):
             next_params.add(value=param.value, name=param.name, vary=param.vary, expr=param.expr, min=param.min, max=param.max)        
         return next_params
 
-
-            
+    def _clbk_showimg(tmpimgs):
+        print tmpimgs
+        if test_ipython():
+            from IPython.display import Image, display
+            for tmpimg in tmpimgs:
+                display(Image(filename=tmpimg)) 
+        
     def fit(self,startpoint=0,**kwargs):
         prev_params= copy_pars(self.init_parameters)
-            
+        
+        if self.drawing_processes > 0:
+            from multiprocessing import Pool
+            self._pool=Pool(processes=self.drawing_processes) 
+               
         first_params=self.fit_one(startpoint,prev_params,**kwargs)    
         prev_params= copy_pars(first_params) 
        
@@ -426,6 +447,10 @@ class peMultiFit (object):
         prev_params= copy_pars(first_params)     
         for i in reversed(range(0,startpoint)): 
             prev_params=self.fit_one(i,prev_params,**kwargs)
+            
+        if self.drawing_processes > 0:    
+            self._pool.close()
+            self._pool.join()
             
     def plot_result(self,**kwargs):
         if self.result is not None:
