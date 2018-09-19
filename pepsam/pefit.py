@@ -224,8 +224,10 @@ class MultifitResult(object):
                 continue
             if fit.success is False:
                 yelx.append(xypair[0])
-                yely.append(xypair[1])                
-                
+                yely.append(xypair[1])                 
+            elif not hasattr(fit,'covar'):
+                redx.append(xypair[0])
+                redy.append(xypair[1])   
             elif fit.covar is None:
                 redx.append(xypair[0])
                 redy.append(xypair[1])
