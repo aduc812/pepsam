@@ -189,7 +189,7 @@ class MultifitResult(object):
         showerr=kwargs.pop('errorbar',True)
         showleg=kwargs.pop('legend',True)
         
-        figure = Figure(figsize=[7,5])
+        figure = Figure(figsize=[6,4.5])
         rect=(
                 rcParams['figure.subplot.left'],
                 rcParams['figure.subplot.bottom'],
