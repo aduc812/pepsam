@@ -177,15 +177,15 @@ save to database. Adds to peTab instance an '_id' key with bson.ObjectID from da
             raise RuntimeError('was already saved under OID '+repr (self['_id'])+'. Use peTab.updatedb instead')
         # check if we are not inserting the existing thing
         data_to_insert=self.dict() 
-        existing_things=petabTable.find(data_to_insert)
-        if existing_things.count()==0:
+        existing_things=petabTable.count_documents(data_to_insert)
+        if existing_things==0:
             oid = petabTable.insert_one(data_to_insert).inserted_id
             #with mongoConnection.start_request():
             #    oid=petabTable.insert(data_to_insert)
             self['_id']=oid
             return self['_id']
         else:
-            raise RuntimeError('The record(s) with exactly the same fields already exist (ex. ' + repr(existing_things.next()['_id']) + '). If you want to update it, please do it explicitly')
+            raise RuntimeError('The record(s) with exactly the same fields already exist (ex. ' + repr(petabTable.find_one(data_to_insert)['_id']) + '). If you want to update it, please do it explicitly')
     
     id=lambda self: self[_id]
     
