@@ -45,14 +45,32 @@ dbExpList=lambda dpkg: dbWaveformSet(dpkg)
     An alias to dbWaveformSet()
 '''
 
-def expgraph(gr,preview=True,filename='graph0',**kwargs):
+def expgraph(gr,preview=True,filename='graph0',file_format='pdf',**kwargs):
     '''
     Shows the graph in the worksheet and if preview = False
     exports it into pdf with specified filename.
 '''
     gr.show(**kwargs)
+    if file_format in ['pdf','svg','png']:
+        extenstion='.'+file_format
+    else:
+        extenstion='.svg'
     if not preview:
-        gr.save(filename+".pdf",**kwargs)
+        gr.save(filename+extenstion,**kwargs)
+        
+        # postprocess - reqiures inkscape installed
+        if not (file_format in ['pdf','svg','png']):
+            import subprocess 
+            retval = subprocess.call(["which", "inkscape"])
+            if retval != 0:
+                RuntimeError("inkscape not installed - cannot convert from svg")
+        
+            if file_format=='eps':
+                from subprocess import call
+                call(["inkscape", filename+extenstion,'-E', filename+".eps"])
+                call(["rm", filename+extenstion]) # cleanup
+            else:
+                RuntimeError("unsupported output format")
     
 
 
