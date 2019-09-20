@@ -68,11 +68,13 @@ def expgraph(gr,preview=True,filename='graph0',file_format='pdf',**kwargs):
             if file_format=='eps':
                 from subprocess import call
                 call(["inkscape", filename+extenstion,'-E', filename+".eps"])
-                call(["rm", filename+extenstion]) # cleanup
+            elif file_format=='wmf':
+                from subprocess import call
+                call(["inkscape", filename+extenstion,'--export-wmf', filename+".wmf"])     
             else:
                 RuntimeError("unsupported output format")
     
-
+            call(["rm", filename+extenstion]) # cleanup
 
 def tableout(tuple_of_XYlist_pairs):
     '''
