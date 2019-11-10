@@ -607,6 +607,18 @@ Keywords:
 # except in plotting functions
     def get_table(self,*args,**keywords):
         return self._get_table(*args,**keywords)[0]  
+        
+########################################################################
+
+    def write_table(self,filename,*args,**keywords):
+        tbl=self.get_table (*args,**keywords)
+        with open(filename,'w') as f:
+            for lne in zip(*tbl):
+                for val in lne:
+                    f.write(str(float(val))+'\t')
+                
+                f.write('\n')
+
              
 ########################################################################
     def get_table2d(self,*args,**keywords):
