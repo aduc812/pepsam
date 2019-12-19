@@ -503,9 +503,9 @@ Keywords:
                     (expr_val,desired_val,rule)=(eval_vars.pop(),eval_conditions.pop(),eval_methods.pop())
                 except IndexError: # end the loop on no elements left
                     break
-                    
+                  
                 dims=dev_dims(expr_val)
-                
+                #print dims #DEBUG  
                 #print rule #DEBUG
                 if len(dims)==0:
                     continue
@@ -541,29 +541,33 @@ Keywords:
                     desired_range_start,desired_range_end=sorted(desired_val)
                     #print desired_range_start,desired_range_end #DEBUG
                     nd_condition=np.logical_and(desired_range_start<expr_val,expr_val<desired_range_end)
+                    #print len(dims) #DEBUG
                     if len(dims)>1:
                         conditions=[nd_condition.any(axis=list(dims).remove(dim)) for dim in dims]  # converge all dims but the one for which the rule is
                     else:                        # in case the rule is for only one dim, all but one means nothing. 
                         conditions=(nd_condition.flat,)  # However, if axis=(), numpy converges every dimension, so this is a workaround 
-                            
+                    #print    zip(conditions,dims)   #DEBUG   
                 for i,var in enumerate(var_set):
+                    #print var_set[i].shape #DEBUG
                     for condition,dim in zip(conditions,dims):
                         if var.shape[dim]>1:
-                            var_set[i]=var.compress(condition, axis=dim)
+                            var_set[i]=var.compress(condition, axis=dim)                           
                         if rule=='range_sum':
                             var_set[i]=var_set[i].sum(axis=dim)
                         else:
                             var_set[i]=var_set[i].mean(axis=dim)
-                        
-                for i,var in enumerate(eval_vars):
-                    for condition,dim in zip(conditions,dims):
-                        if var.shape[dim]>1:
-                            eval_vars[i]=var.compress(condition, axis=dim)
-                        if rule=='range_sum':
-                            var_set[i]=var_set[i].sum(axis=dim)
-                        else:
-                            var_set[i]=var_set[i].mean(axis=dim)
-                    
+                        #print var_set[i].shape #DEBUG
+                # contraction along 2 dimensions did not work until I commented this. Probably it is not needed?        
+                #for i,var in enumerate(eval_vars):
+                #    print var_set[i].shape
+                #    for condition,dim in zip(conditions,dims):
+                #        if var.shape[dim]>1:
+                #            eval_vars[i]=var.compress(condition, axis=dim)
+                #        if rule=='range_sum':
+                #            var_set[i]=var_set[i].sum(axis=dim)
+                #        else:
+                #           var_set[i]=var_set[i].mean(axis=dim)
+                #        print var_set[i].shape
          
         #convert everything to desired units
         
