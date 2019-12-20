@@ -580,9 +580,11 @@ Keywords:
         for i in xrange(len(var_set[0].shape)):
             if (np.array([var.shape[i] for var in var_set])==1).all():
                 unused_dims.append(i)
-        for dim in unused_dims:
+        for dim in reversed(unused_dims):
+            #print dim #DEBUG
             for i,var in enumerate(var_set):
-                var_set[i]=var.squeeze(axis=dim)
+                #print var_set[i].shape #DEBUG
+                var_set[i]=var_set[i].squeeze(axis=dim)
                 
         # normalize - last variable in var_set by default
                 
