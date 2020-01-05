@@ -23,21 +23,21 @@ loads all experiments into same dictionary
     dbkeys=dict()
     for d in dpkg:
         if dpkg[d] is None:
-            print None
+            print (None)
             dbkeys.update({d:None})
         else:
             try:
                 dbkeys.update({d:dpkg[d].db()})
             except RuntimeError as e:
-                print str(d)+ '\t' + str(e)
+                print ('{}\t{}'.format(str(d),str(e)))
                 dbkeys.update({d:None})
             except (InvalidDocument, AttributeError):
                 dbkeys.update({d:None})
-    #print dbkeys
-    print 'dpkg={\n'
+    #print (dbkeys)
+    print ('dpkg={\n')
     for key,value in dbkeys.items():
-        print str(key)+':peTab("'+str(value)+'"),'
-    print '}'
+        print ('{}:peTab("{}"),'.format(key,value))
+    print ('}')
     return dbkeys
     
 dbExpList=lambda dpkg: dbWaveformSet(dpkg)   
@@ -98,7 +98,7 @@ def readXY(filename,sep=None,comment_chars='#',cols=(0,1),decimal_sep='.'):
  
     xyypoints=[]
 
-    with open(filename,'rU') as f:
+    with open(filename,'r') as f:
         for line in f:
             if line[0] in comment_chars:
                 continue
@@ -223,7 +223,7 @@ def _expression_from_dict(expr):
                 expr['expression'],
                 locals=dict([(
                                 arg,
-                                eval(   'var("' + arg + '")'  )
+                                eval(   'var("' + arg + '")'  ,{'var':var})
                               ) for arg in expr['arguments']])
                      )
 

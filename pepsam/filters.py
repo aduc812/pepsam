@@ -217,7 +217,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     try:
         window_size = np.abs(np.int(window_size))
         order = np.abs(np.int(order))
-    except ValueError, msg:
+    except ValueError:
         raise ValueError("window_size and order have to be of type int")
     if window_size % 2 != 1 or window_size < 1:
         raise TypeError("window_size size must be a positive odd number")
@@ -326,7 +326,7 @@ Makes no sence to make it lower than tolerance 1
 # calculate average distance between closest neighbours
     distances=[]
     for i in range(0,len(data)-1):
-	distances.append(data[i]-data[i+1])
+        distances.append(data[i]-data[i+1])
     avgdist=np.sum(np.abs(distances))/float(len(distances))
 # Find separate outliers
     newdata=np.array(data)

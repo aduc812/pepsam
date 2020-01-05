@@ -17,7 +17,7 @@ from .utils import _quantity_to_dict, _quantity_from_dict,\
             _expression_to_dict, _expression_from_dict, test_ipython
 from sage.repl.preparse import preparse as preparse_file
 
-from StringIO import StringIO
+from io import StringIO
 import os,sys
 
 class dualStdout(StringIO):
@@ -38,8 +38,8 @@ class peScript(object):
                 keywords=[]
             self._init_create_from_code(desc=desc,code=code,keywords=keywords)
             oid=self.db()
-            print 'new script created in db, with ObjectID: "'+ str(oid)+'"'
-            print 'Paste this ObjectID as the second argument of peScript(..)'
+            print ('new script created in db, with ObjectID: "{}"'.format(str(oid)))
+            print ('Paste this ObjectID as the second argument of peScript(..)')
         else:    
             self._init_load_from_db(oid)
             self.update(desc=desc,keywords=keywords)
@@ -216,8 +216,8 @@ Converts a dictionary (manually created or loaded from DB) into a valid peScript
                 mod=import_(code_filename)
             except Exception as e:
                 from traceback import format_exc
-                print 'Exception:' + e.message + '\r\n'
-                print format_exc() + '\r\n'
+                print ('Exception:{}\r\n'.format(e.message))
+                print (format_exc() + '\r\n')
                 
             # collect result, if applicable    
             try: 
@@ -256,10 +256,10 @@ import imp, os.path, sys
 def import_(filename):
     path, name = os.path.split(filename)
     name, ext = os.path.splitext(name)
-    #print 'Before: %s in sys.modules ==' % name, name in sys.modules
+    #print ('Before: %s in sys.modules ==' % name, name in sys.modules)
     file_, filename, data = imp.find_module(name, [path])
     mod = imp.load_module(name, file_, filename, data)
-    #print 'After: %s in sys.modules ==' % name, name in sys.modules
+    #print ('After: %s in sys.modules ==' % name, name in sys.modules)
     return mod 
           
 def remove_if_exists(filename):

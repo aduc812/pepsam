@@ -37,6 +37,7 @@ from sage.calculus.calculus import var
 ## other tools
 import math
 import datetime
+from future.utils import string_types  # py2-3 compatible string types
 ###############################################################################
 
 EXPRESSIONS_COMPARE_PRECISION=1E-10
@@ -94,19 +95,20 @@ class peTab(MutableMapping,
     def __contains__(self, item):
         return super(peTab,self).__getattribute__('__dict__').__contains__(item)
 ###############################################################################
-# due to some reason has_key is not emulated
+# due to some reason has_key is dropped from py3, recreate it here
     def has_key(self,key):
-        return super(peTab,self).__getattribute__('__dict__').has_key(key)
+        return super(peTab,self).__getattribute__('__dict__').__contains__(key)
 
 
 ###############################################################################
     def __init__(self,*args,**kwargs):
+        
 #       sage.structure.sage_object.SageObject.__init__(self)
         if isinstance(args[0],dict):
             self._init_from_dict(args[0])           
         elif isinstance(args[0],ObjectId):# fetch from database
             self._init_from_OID(args[0])
-        elif isinstance(args[0],basestring):# fetch from database using string OID
+        elif isinstance(args[0],string_types):# fetch from database using string OID
             self._init_from_OID(ObjectId(args[0]))
         else:
             raise NotImplemented('cannot create peTab from type "' + str(type(args[0]))+'"' )
@@ -132,23 +134,23 @@ Converts a dictionary (manually created or loaded from DB) into a valid peTab in
         self['_default_axis']=list()
         self['_params_to_show']=list()
         
-        for key,value in dict_.items():
-             if isinstance(value,dict):
-                if value.has_key('value') :
-                    if value.has_key('units') :
-                        self[key]=_quantity_from_dict(value)
+        for key,obj in dict_.items():
+             if isinstance(obj,dict):
+                if "value" in obj :
+                    if "units" in obj :
+                        self[key]=_quantity_from_dict(obj)
                     else:
-                        self[key]=np.array(value['value'])
-                elif value.has_key('expression') and value.has_key('arguments'):
-                    self[key]=_expression_from_dict(value)
-                elif value.has_key(ESET_KEY):
-                    self[key]=_expr_set_from_dict(value)
-                elif value.has_key('oid') and value.has_key('name'):
-                    self[key]=peScriptRef(oid=value['oid'],name=value['name'])
-             elif isinstance(value,tuple):
-                self[key]=list(value) # in db only lists supported
+                        self[key]=np.array(obj['value'])
+                elif ('expression' in obj) and ('arguments' in obj):
+                    self[key]=_expression_from_dict(obj)
+                elif ESET_KEY in obj:
+                    self[key]=_expr_set_from_dict(obj)
+                elif ('oid' in obj) and ('name' in obj):
+                    self[key]=peScriptRef(oid=obj['oid'],name=obj['name'])
+             elif isinstance(obj,tuple):
+                self[key]=list(obj) # in db only lists supported
              else:
-                self[key]=value
+                self[key]=obj
                                 
     def dict(self):
         '''
@@ -317,12 +319,12 @@ in this peTab instance
         arglist=[]
         vallist=[]
         args=expression.arguments()
-        #print expression # DEBUG
+        #print (expression) # DEBUG
         # loop over arguments
         found=False # an indicator that unresolved peTab-related arguments are found
         for arg in args:
             str_arg=repr(arg)
-            #print repr(str_arg) # DEBUG
+            #print (repr(str_arg)) # DEBUG
             if str_arg in self: # found 'our' argument
                 found=True
                 arglist.append(arg)
@@ -337,14 +339,14 @@ in this peTab instance
             else: # found unknown argument, leave it as is
                 arglist.append(arg)
                 vallist.append(arg)
-        #print arglist  #DEBUG
+        #print (arglist)  #DEBUG
         # check if we have found 'our' unresolved arguments
-        #print arglist #DEBUG
-        #print vallist #DEBUG
+        #print (arglist) #DEBUG
+        #print (vallist) #DEBUG
         if (found):
             from sage.ext.fast_callable import fast_callable
             pExpr=fast_callable(expression,vars=arglist)
-            #print pExpr(*(vallist)) #debug
+            #print (pExpr(*(vallist))) #debug
             return pExpr(*(vallist))
         else: # no unresolved arguments - the end
             return expression  
@@ -359,7 +361,8 @@ Is  recursive, as the parameter value may be itself an expression
 '''      
         
         # check if we have string - treat as a variable with that name
-        if isinstance(expression, basestring): 
+        
+        if isinstance(expression, string_types): 
             expression=var(expression)
         
         #expand the expression        
@@ -373,7 +376,7 @@ Is  recursive, as the parameter value may be itself an expression
         else: # expression is iterable
             if len(expression)==1: # treat iterable with one element as this element
                 return self._eval_single_expr(expression[0])
-            return map(self._eval_single_expr,expression)
+            return list(map(self._eval_single_expr,expression))
             
 ################################################################################################           
 
@@ -434,7 +437,7 @@ Keywords:
         if deficit>0:
             var_units+=(None,)*deficit
       
-        var_set=map(self.eval_expr,expr_set) # we keep var_set as a list, even if it contains 1 element 
+        var_set=list(map(self.eval_expr,expr_set))# we keep var_set as a list, even if it contains 1 element 
         
         ## A universal selection rule ????       
         ## evaluate  "eval_at" variables and rules 
@@ -451,7 +454,7 @@ Keywords:
                 else:
                     meth=cond[2]
                 eval_methods.append(meth)
-            #print eval_vars #DEBUG
+            #print (eval_vars) #DEBUG
         else:
             eval_vars=[]    
             
@@ -460,7 +463,7 @@ Keywords:
         sorted_dims=[]
         for i in eval_vars+var_set: # first sort on eval_vars, as we will then maybe select ranges from them
             dims=dev_dims(i)
-            #print dims #DEBUG
+            #print (dims) #DEBUG
             if len(dims)!=1:
                 continue  # sort only 1d arrays
             dim=dims[0]
@@ -468,7 +471,7 @@ Keywords:
                 continue # sort once only along every dimension
             sorted_dims.append(dim)
             # get index by sorting and then squeezing along all dims but dim, which is the only non-degenerate
-            index= np.argsort(i,axis=dim).squeeze(axis=range(0,len(i.shape)).remove(dim))
+            index= np.argsort(i,axis=dim).squeeze(axis=list(range(0,len(i.shape))).remove(dim))
             # sort everything using that index        
             for idx,j in enumerate(var_set):  
                 if dim in dev_dims(j):    # sort along non-degenerate dimension dim
@@ -486,9 +489,9 @@ Keywords:
                 continue
             dim=dims[0]    
             range_start,range_end=sorted(var_range)
-            #print range_start,range_end #DEBUG
+            #print ((range_start,range_end)) #DEBUG
             condition=np.logical_and(range_start<var,var<range_end).flat
-            #print [ i for i in condition] #DEBUG
+            #print ([ i for i in condition]) #DEBUG
             for j,var in enumerate(var_set):                  
                 if var.shape[dim]>1:
                     var_set[j]=var.compress(condition, axis=dim)          
@@ -505,8 +508,8 @@ Keywords:
                     break
                   
                 dims=dev_dims(expr_val)
-                #print dims #DEBUG  
-                #print rule #DEBUG
+                #print (dims) #DEBUG  
+                #print (rule) #DEBUG
                 if len(dims)==0:
                     continue
                 
@@ -514,7 +517,7 @@ Keywords:
                     if len(dims)>1:
                         raise ValueError('\'seqnum\' option works only for 1-D variables')
                     condition=np.zeros(expr_val.shape[dims[0]])
-                    #print len(condition)
+                    #print (len(condition))
                     if len(condition)<=desired_val:
                         raise IndexError('index '+repr(desired_val)+ ' is too large, of total ' + repr(len(condition)))
                     condition[desired_val]=1
@@ -539,16 +542,16 @@ Keywords:
                         
                 elif rule=='range_avg' or rule=='range_sum':
                     desired_range_start,desired_range_end=sorted(desired_val)
-                    #print desired_range_start,desired_range_end #DEBUG
+                    #print ((desired_range_start,desired_range_end)) #DEBUG
                     nd_condition=np.logical_and(desired_range_start<expr_val,expr_val<desired_range_end)
-                    #print len(dims) #DEBUG
+                    #print (len(dims)) #DEBUG
                     if len(dims)>1:
                         conditions=[nd_condition.any(axis=list(dims).remove(dim)) for dim in dims]  # converge all dims but the one for which the rule is
                     else:                        # in case the rule is for only one dim, all but one means nothing. 
                         conditions=(nd_condition.flat,)  # However, if axis=(), numpy converges every dimension, so this is a workaround 
-                    #print    zip(conditions,dims)   #DEBUG   
+                    #print    (zip(conditions,dims)  ) #DEBUG   
                 for i,var in enumerate(var_set):
-                    #print var_set[i].shape #DEBUG
+                    #print (var_set[i].shape) #DEBUG
                     for condition,dim in zip(conditions,dims):
                         if var.shape[dim]>1:
                             var_set[i]=var.compress(condition, axis=dim)                           
@@ -556,10 +559,10 @@ Keywords:
                             var_set[i]=var_set[i].sum(axis=dim)
                         else:
                             var_set[i]=var_set[i].mean(axis=dim)
-                        #print var_set[i].shape #DEBUG
+                        #print (var_set[i].shape) #DEBUG
                 # contraction along 2 dimensions did not work until I commented this. Probably it is not needed?        
                 #for i,var in enumerate(eval_vars):
-                #    print var_set[i].shape
+                #    print (var_set[i].shape)
                 #    for condition,dim in zip(conditions,dims):
                 #        if var.shape[dim]>1:
                 #            eval_vars[i]=var.compress(condition, axis=dim)
@@ -567,7 +570,7 @@ Keywords:
                 #            var_set[i]=var_set[i].sum(axis=dim)
                 #        else:
                 #           var_set[i]=var_set[i].mean(axis=dim)
-                #        print var_set[i].shape
+                #        print (var_set[i].shape)
          
         #convert everything to desired units
         
@@ -577,13 +580,13 @@ Keywords:
     
         # contract on unused dimensions
         unused_dims=[]
-        for i in xrange(len(var_set[0].shape)):
+        for i in range(len(var_set[0].shape)):
             if (np.array([var.shape[i] for var in var_set])==1).all():
                 unused_dims.append(i)
         for dim in reversed(unused_dims):
-            #print dim #DEBUG
+            #print (dim) #DEBUG
             for i,var in enumerate(var_set):
-                #print var_set[i].shape #DEBUG
+                #print (var_set[i].shape) #DEBUG
                 var_set[i]=var_set[i].squeeze(axis=dim)
                 
         # normalize - last variable in var_set by default
@@ -696,8 +699,8 @@ A simple plotting function for a single Y variable
 '''
                                 
         #set default plot parameters
-        if 'plotjoined' not in keywords:
-            keywords['plotjoined']=True;
+        #if 'plotjoined' not in keywords:
+         #   keywords['plotjoined']=True;
         if 'frame' not in keywords:
             keywords['frame']=True;    
         if 'axes' not in keywords:
@@ -710,10 +713,17 @@ A simple plotting function for a single Y variable
 
                      
         #plot!
-        from sage.plot.plot import list_plot
+        #from sage.plot.plot import list_plot
         # list_plot does not accept any args - it only treat the second arg as a plotjoined value
         # so we skip passing *args into..
-        return list_plot(zip(Xcol,Ycol),**keywords)
+        pj=keywords.pop('plotjoined',True)
+        #print(pj) # DEBUG
+        if (pj):
+            from sage.plot.plot import line
+            return line(zip(Xcol,Ycol),**keywords)
+        else:
+            from sage.plot.point import points
+            return points(zip(Xcol,Ycol),**keywords)
 #########################################################################################
        
     def plot2d(self,*args,**keywords):
@@ -871,7 +881,7 @@ The following keywords are specific to sage_plot():
         else:                       
             coloriter=ColorBank() 
             def colorspec():
-                return coloriter.next()
+                return next(coloriter)
                 
         from sage.plot.graphics import Graphics
         graph=Graphics()                                       
@@ -882,7 +892,7 @@ The following keywords are specific to sage_plot():
                                         color=nextcolor, **keywords)    
           
         if (textlegend):          
-            print text_legend_data     
+            print (text_legend_data)
         return graph   
         
          
@@ -915,7 +925,7 @@ Show the values of parameters specified by strings in self['_params_to_show']
         return output
                         
     def pretty_print(self):
-        print self.pretty_str()
+        print (self.pretty_str())
                         
     def pretty_str(self):
         

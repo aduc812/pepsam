@@ -105,17 +105,17 @@ returns nothing.
 It can be overridden for specific output.
 '''
         if(result.success):
-            print 'Fit succeeded'
+            print ('Fit succeeded')
         else:
-            print 'Fit failed, try redefifing initial guess'
+            print ('Fit failed, try redefifing initial guess')
         if(result.errorbars is False):
-            print 'Errors not estimated, you may have overparametrized the function' 
-        print 'Chi-sqr: ' + str(result.chisqr)  
+            print ('Errors not estimated, you may have overparametrized the function' )
+        print ('Chi-sqr: {}'.format( str(result.chisqr))  )
         for name, par in result.params.items():
             if (result.errorbars is True):
-                print '  %s = %.4g err: %.4g'% (name, par.value, par.stderr)
+                print ('  %s = %.4g err: %.4g'% (name, par.value, par.stderr))
             else:
-                print '  %s = %.4g'% (name, par.value)
+                print ('  %s = %.4g'% (name, par.value))
             
     def _print_formatted_parameter(self,parameter):
         if isinstance(parameter, Parameter) == False:
@@ -154,7 +154,7 @@ class MultifitResult(object):
             self.results_list=[None for i in range(res_len)]
                
         object.__init__(self)
-        #print len (self.xcol) # DEBUG
+        #print (len (self.xcol)) # DEBUG
         
     def append(self,x,result,pos=None):
         if pos is None:
@@ -266,14 +266,14 @@ class MultifitResult(object):
         figure.set_canvas(FigureCanvasAgg(figure)) 
         
         if test_ipython():
-            #print 'ipython'
+            #print ('ipython')
             import tempfile
             tmpimg=tempfile.NamedTemporaryFile(suffix='.png',delete=True)
             figure.savefig(tmpimg.name,format='png') 
             from IPython.display import Image, display
             display(Image(filename=tmpimg.name))        
         else: 
-            #print ' no ipython'
+            #print (' no ipython')
             figure.savefig(parname+'.svg')
             
         #figure.show()
@@ -349,7 +349,7 @@ class MultifitResult(object):
             report+='\n'
             
         if filename is None:
-            print report
+            print (report)
         else:
             with open(filename,'w') as f:
                 f.write(report)
@@ -397,9 +397,9 @@ class peMultiFit (object):
                         prev_params[key].value=self.init_parameters[key].value
                         prev_params[key].vary=self.init_parameters[key].vary
             
-        # print progress
+        # print (progress)
         if showprogress:
-            print 'fit %d of %d: %s' % (i, len(self.method_kwdlist),fit_id)
+            print ('fit %d of %d: %s' % (i, len(self.method_kwdlist),fit_id))
         cvfitter=self.fit_method(**param_set)
         displayargs=kwargs.pop('displayargs',{})
         displayargs.update(dict(filename='fit'+str(i)+'.png',))

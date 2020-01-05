@@ -4,6 +4,8 @@ import numpy as np
 from lmfit import minimize, Parameters, Parameter
 import quantities as pq
 from sage.plot.plot import list_plot
+#from sage.plot.plot import line as pl_line
+#from sage.plot.point import points as pl_points
 #from sage.misc.html import html
 #from .plotfast import plotfast 
 from .utils import IntegerBank       
@@ -292,10 +294,10 @@ Input:
          #pretty_print(html('<table><tr><td>'))
          (
             list_plot(
-                   zip(
+                   list(zip(
                        self.xCol,
                        self.residual_function(result.params,self.xCol)    
-                       ),
+                       )),
                    plotjoined=True,color='red',
                    **kwargs)\
             + self.dataset.plot2d(**self.dataset_kwargs)
@@ -305,10 +307,10 @@ Input:
                 ymin=min(np.min(self.yCol),np.max(self.yCol)/100),
                 scale=scale
                 ) 
-         resid_plt=list_plot(zip(
+         resid_plt=list_plot(list(zip(
                            self.xCol-self.xCol[0]+self.xCol[1],
                            self.residual_function(result.params,self.xCol,self.yCol)
-                       ),
+                       )),
                        size=self.dataset_kwargs['size'], color='blue',
                        )
          resid_plt.show(#filename=fname_res,
