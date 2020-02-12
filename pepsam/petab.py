@@ -619,9 +619,9 @@ Keywords:
         
 ########################################################################
 
-    def write_table(self,filename,*args,**keywords):
+    def write_table(self,filename,*args,mode='w',**keywords):
         tbl=self.get_table (*args,**keywords)
-        with open(filename,'w') as f:
+        with open(filename,mode) as f:
             for lne in zip(*tbl):
                 for val in lne:
                     f.write(str(float(val))+'\t')

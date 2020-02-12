@@ -66,7 +66,7 @@ class peScript(object):
         self.output=''
     
     def _init_load_from_db(self,oid):
-        if isinstance (oid,basestring):
+        if isinstance (oid,str):
             oid=ObjectId(oid)
         dict_=scriptTable.find_one({"_id": oid})
         if dict_==None:
@@ -80,8 +80,8 @@ Converts a dictionary (manually created or loaded from DB) into a valid peScript
         # convert result
         for key,value in dict_['result'].items():
              if isinstance(value,dict):
-                if value.has_key('value') :
-                    if value.has_key('units') :
+                if 'value' in value :
+                    if 'units' in value :
                         dict_['result'][key]=_quantity_from_dict(value)
                     else:
                         dict_['result'][key]=np.array(value['value'])
@@ -216,7 +216,7 @@ Converts a dictionary (manually created or loaded from DB) into a valid peScript
                 mod=import_(code_filename)
             except Exception as e:
                 from traceback import format_exc
-                print ('Exception:{}\r\n'.format(e.message))
+                print ('Exception:{}\r\n'.format(e))
                 print (format_exc() + '\r\n')
                 
             # collect result, if applicable    
