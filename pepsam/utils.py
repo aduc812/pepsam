@@ -219,12 +219,13 @@ def _expression_from_dict(expr):
     from sage.misc.sage_eval import sage_eval
     from sage.calculus.calculus import var          
     # assume we have checked the dictionary already
+    argset=[arg.decode() if isinstance(arg,bytes) else arg for arg in expr['arguments']]
     return sage_eval(
                 expr['expression'],
                 locals=dict([(
                                 arg,
                                 eval(   'var("' + arg + '")'  ,{'var':var})
-                              ) for arg in expr['arguments']])
+                              ) for arg in argset])
                      )
 
 def dev_dims(array_like):

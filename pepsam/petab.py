@@ -18,6 +18,9 @@ from collections import MutableMapping
 
 ## pymongo imports
 from bson import ObjectId
+## h5py imports
+import h5py
+import os
 
 ## numpy
 import numpy as np
@@ -202,6 +205,81 @@ save to database. Adds to peTab instance an '_id' key with bson.ObjectID from da
         if not existing_record:
             raise RuntimeError('This peTab instance has an _id which is not found in database')
         petabTable.save(self.dict()) # TODO: save() is deprecated. Best to use find_one_and_update().  Maybe.
+        
+        
+############################################################################################ 
+# saving/loading to hdf5
+############################################################################################         
+
+    def to_hdf5(self, filename, path='/',mode='a'):
+        """
+        ....
+        """
+        with h5py.File(filename, mode) as h5file:
+            self._recursively_save_dict_contents_to_group( h5file, path,self.dict())
+
+    def _recursively_save_dict_contents_to_group(self, h5file, path, dic):
+        """
+        ....
+        """
+        for key, item in dic.items():
+            if  key in ('_default_axis', '_params_to_show',):
+                h5file[path + key] = np.array(item,dtype='S')
+            elif isinstance(item, (np.ndarray, np.int64, np.float64, str, bytes, float, int)):
+                h5file[path + key] = item
+            elif isinstance(item, dict):
+                self._recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+            elif isinstance(item, list):
+                try:
+                    h5file[path + key] = np.array(item)
+                except TypeError:
+                    if type(item[0]) is str:
+                        h5file[path + key] = np.array(item,dtype='S')
+            elif item is None:
+                h5file[path + key] = 'None'
+            else:
+                #pass
+                raise ValueError('Cannot save %s type'%type(item))
+
+    def from_hdf5(self,filename,path='/'):
+        """
+        ....
+        """
+        with h5py.File(filename, 'r') as h5file:
+            self._init_from_dict(self._recursively_load_dict_contents_from_group( h5file, path))
+        return self
+
+    def _recursively_load_dict_contents_from_group(self,h5file, path='/'):
+        """
+        ....
+        """
+        ans = {}
+        for key, item in h5file[path].items():
+            if  key in ('_default_axis', '_params_to_show',):
+                ans[key] = list(item[()])   
+            elif isinstance(item, h5py._hl.dataset.Dataset):
+                try:
+                    ans[key] = item[()]  
+                    if isinstance (ans[key],str):
+                        if  ans[key]=='None': # this is a source of future bugs. 'None' is not None
+                            ans[key]=None           
+                except TypeError:
+                    print (key)
+                    raise
+                    
+            elif isinstance(item, h5py._hl.group.Group):
+                ans[key] = self._recursively_load_dict_contents_from_group(h5file, path + key + '/')
+        return ans        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 ############################################################################################ 
 # copying and comparsion, mainly for testing purposes  
 ############################################################################################ 
