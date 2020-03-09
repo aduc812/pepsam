@@ -73,20 +73,20 @@ Input:
          res_scale=kwargs.pop('res_scale','linear')
          (
             list_plot(
-                   zip(
+                   list(zip(
                        self.xCol,
                        self.residual_function(result.params,self.xCol)    
-                       ),
+                       )),
                    plotjoined=True,color='red',
                    ymax=np.max(self.yCol), 
                    ymin=min(np.min(self.yCol),np.max(self.yCol)/100),
                    **kwargs)\
             + self.dataset.plot2d(**self.dataset_kwargs)
          ).show(figsize=[4,3]) 
-         list_plot(zip(
+         list_plot(list(zip(
                            self.xCol,
                            self.residual_function(result.params,self.xCol,self.yCol)
-                       ),
+                       )),
                        size=self.dataset_kwargs['size']
                        ).show(figsize=[4,3],scale=res_scale)
          peFit.display_fit(self,result,**kwargs)
