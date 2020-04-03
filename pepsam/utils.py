@@ -98,7 +98,7 @@ def readXY(filename,sep=None,comment_chars='#',cols=(0,1),decimal_sep='.'):
  
     xyypoints=[]
 
-    with open(filename,'r') as f:
+    with open(filename,'r',errors='ignore') as f: # ignore Unicode errors. We are anyways here for numeric data
         for line in f:
             if line[0] in comment_chars:
                 continue
