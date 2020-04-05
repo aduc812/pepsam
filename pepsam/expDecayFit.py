@@ -38,7 +38,7 @@ if no prompt specified, a Dirac delta-function is assumed
 '''
 
     def __init__(self, dataset, dataset_args={},
-                 prompt=None, prompt_args={}, conv_method='time',
+                 prompt=None, prompt_args={},ufast=None, ufast_args={}, conv_method='time',
                  #xrange=[-np.infty,+np.infty], # this was intended to override  both xranges for prompt and dataset
                  **kwargs):
         '''\
@@ -59,7 +59,7 @@ Input:
         
         if (prompt is None):
             self.residual_function=self.multiexp_residual
-        else:
+        else:              
             self.convmethod=conv_method
             self.prompt=prompt
             # and make sure we work with plain arrays 
@@ -76,6 +76,23 @@ Input:
                                     )           #  is negligible
             self.normalize_prompt()
             
+            if (ufast is None): # fix ufast component if not provided
+                self.ufast=prompt
+                self.ufast_interp_func=self.prompt_interp_func
+            else:
+                self.ufast=ufast
+                (self.ufast_raw_xCol,self.ufast_raw_yCol)=map (np.array,ufast.get_table(**ufast_args))
+                #self.ufastx_begin=self.prompt_raw_xCol[0] #ufast begins at self.promptx_begin
+                # interpolate prompt at X values of dataset
+                from scipy import interpolate
+                self.ufast_interp_func = interpolate.interp1d(
+                                        self.ufast_raw_xCol, self.ufast_raw_yCol,
+                                        kind='linear',
+                                        bounds_error=False,
+                                        fill_value=0 # outside range prompt  
+                                        )           #  is negligible
+                self.normalize_prompt(ufast=True)
+                
             xstep=np.diff(self.xCol)
             xstep=np.insert(xstep,0,xstep[0])
             if self.Weights is None:
@@ -89,22 +106,42 @@ Input:
                 self.hires_edge=int(range_steps[0])
                 self.full_hires=False
     
-    def normalize_prompt(self,pshift=0):
-                                       
-        self.prompt_yCol=self.prompt_interp_func(self.xCol-pshift)
-        self.prompt_yCol/=np.sum(self.prompt_yCol)            
+    def normprompt_general(self,prompt_interp_func, pshift=0):
+        prompt_yCol=prompt_interp_func(self.xCol-pshift)
+        prompt_yCol/=np.sum(prompt_yCol)            
         ps=0
         pi=0
-        pe=len(self.prompt_yCol)
-        for i,p in enumerate(self.prompt_yCol):
+        pe=len(prompt_yCol)
+        for i,p in enumerate(prompt_yCol):
             ps+=p
             if ps<=0.5:
                 pi=i
             if ps>=1.0:
                 pe=i
                 break
-        self.prompt_shortY=self.prompt_yCol[0:pe]
-        self.prompt_barycenter=self.xCol[pi]
+        prompt_shortY=prompt_yCol[0:pe]
+        prompt_barycenter=self.xCol[pi]
+        return (prompt_yCol, prompt_shortY, prompt_barycenter)
+    
+    def normalize_prompt(self,pshift=0, ufast=False):
+        if (not ufast):
+            self.prompt_yCol, self.prompt_shortY, self.prompt_barycenter = self.normprompt_general(self.prompt_interp_func,pshift)
+        else:
+            self.ufast_yCol, self.ufast_shortY, self.ufast_barycenter = self.normprompt_general(self.ufast_interp_func,pshift)                 
+        #self.prompt_yCol=self.prompt_interp_func(self.xCol-pshift)
+        #self.prompt_yCol/=np.sum(self.prompt_yCol)            
+        #ps=0
+        #pi=0
+        #pe=len(self.prompt_yCol)
+        #for i,p in enumerate(self.prompt_yCol):
+        #    ps+=p
+        #    if ps<=0.5:
+        #        pi=i
+        #    if ps>=1.0:
+        #        pe=i
+        #        break
+        #self.prompt_shortY=self.prompt_yCol[0:pe]
+        #self.prompt_barycenter=self.xCol[pi]
     
     def multiexpconv_residual(self,pars,x,data=None,):
         
@@ -121,7 +158,8 @@ Input:
             pshift = 0
         
         if pshift != 0:
-            self.normalize_prompt(pshift)        
+            self.normalize_prompt(pshift)
+            self.normalize_prompt(pshift,ufast=True)        
 
             
         if 'ultrafast_amplitude' in pars:       
@@ -154,7 +192,7 @@ Input:
         else:
             cvfix=np.convolve(self.prompt_shortY,IRF[0:self.hires_edge])[0:self.hires_edge]
         
-        cvfix+=ultrafast_amplitude*self.prompt_yCol[0:self.hires_edge]
+        cvfix+=ultrafast_amplitude*self.ufast_yCol[0:self.hires_edge]
         cvfix*=np.float(10)**(-abs_coef)
         
         if self.full_hires:
