@@ -14,6 +14,32 @@ import re
 import warnings
 from bson import InvalidDocument
 
+def stack_petab(dict_of_petabs,keystostack,keytosort=None):
+    '''
+    stack peTabs along new dimension. 
+    dict_of_petabs - the peTabs to stack. The keys of dict_of_petabs do not matter
+    keystostack - a list of peTab keys that have to be stacked. Values should have the same shape
+    keytosort - a key that is used to sort peTabs along new dimension. 
+If None, will be sorted in ascending order of the keys of dict_of_petabs.  
+'''
+    if keytosort is not None:
+        dict_of_petabs_keys=sorted(dict_of_petabs.keys(),key=lambda k:dict_of_petabs[k].eval_expr(keytosort)) 
+    else:
+        dict_of_petabs_keys=sorted(dict_of_petabs.keys())
+    LMO_loen_ptb=dict_of_petabs[list(dict_of_petabs_keys)[0]].copy()
+    keys=list(LMO_loen_ptb.keys())
+    print (keys)
+    for key in keys:
+        if key in keystostack:
+            LMO_loen_ptb[key]=np.stack([dict_of_petabs[i][key] for i in dict_of_petabs_keys],axis=0)
+            if len(LMO_loen_ptb[key].shape)==1:
+                LMO_loen_ptb[key]=LMO_loen_ptb[key].reshape((list(LMO_loen_ptb[key].shape)+[1,1]))
+        elif np.issubclass_(type(LMO_loen_ptb[key]),np.ndarray):
+            LMO_loen_ptb[key]=LMO_loen_ptb[key].reshape(([1]+list(LMO_loen_ptb[key].shape)))
+    return LMO_loen_ptb
+
+
+
 def dbWaveformSet(dpkg):
     '''
     save to db experiments stored as values in dictionary. 
@@ -31,7 +57,8 @@ loads all experiments into same dictionary
             except RuntimeError as e:
                 print ('{}\t{}'.format(str(d),str(e)))
                 dbkeys.update({d:None})
-            except (InvalidDocument, AttributeError):
+            except (InvalidDocument, AttributeError) as e:
+                print ('{}\t{}'.format(str(d),str(e)))
                 dbkeys.update({d:None})
     #print (dbkeys)
     print ('dpkg={\n')
