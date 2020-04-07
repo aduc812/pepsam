@@ -77,8 +77,9 @@ Input:
             self.normalize_prompt()
             
             if (ufast is None): # fix ufast component if not provided
-                self.ufast=prompt
-                self.ufast_interp_func=self.prompt_interp_func
+                self.ufast=None
+                self.ufast_interp_func=None
+                #self.normalize_prompt(ufast=True)
             else:
                 self.ufast=ufast
                 (self.ufast_raw_xCol,self.ufast_raw_yCol)=map (np.array,ufast.get_table(**ufast_args))
@@ -127,6 +128,8 @@ Input:
         if (not ufast):
             self.prompt_yCol, self.prompt_shortY, self.prompt_barycenter = self.normprompt_general(self.prompt_interp_func,pshift)
         else:
+            if self.ufast is None:
+                return
             self.ufast_yCol, self.ufast_shortY, self.ufast_barycenter = self.normprompt_general(self.ufast_interp_func,pshift)                 
         #self.prompt_yCol=self.prompt_interp_func(self.xCol-pshift)
         #self.prompt_yCol/=np.sum(self.prompt_yCol)            
@@ -191,8 +194,10 @@ Input:
             cvfix=np.real(np.fft.ifft(np.fft.fft(IRF[0:self.hires_edge])*np.fft.fft(self.prompt_yCol[0:self.hires_edge])))
         else:
             cvfix=np.convolve(self.prompt_shortY,IRF[0:self.hires_edge])[0:self.hires_edge]
-        
-        cvfix+=ultrafast_amplitude*self.ufast_yCol[0:self.hires_edge]
+        if self.ufast is None:
+            cvfix+=ultrafast_amplitude*self.prompt_yCol[0:self.hires_edge]
+        else:
+            cvfix+=ultrafast_amplitude*self.ufast_yCol[0:self.hires_edge]
         cvfix*=np.float(10)**(-abs_coef)
         
         if self.full_hires:
