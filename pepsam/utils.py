@@ -178,7 +178,7 @@ Usage:
         yield 'magenta'
         yield 'orange'
         yield 'black'
-        yield 'yellow'
+        yield 'gold'
         yield 'purple'
         yield 'grey'
 
