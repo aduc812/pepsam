@@ -260,9 +260,11 @@ save to database. Adds to peTab instance an '_id' key with bson.ObjectID from da
             elif isinstance(item, h5py._hl.dataset.Dataset):
                 try:
                     ans[key] = item[()]  
+                    if isinstance (ans[key],bytes):
+                        ans[key]=ans[key].decode('utf-8')
                     if isinstance (ans[key],str):
                         if  ans[key]=='None': # this is a source of future bugs. 'None' is not None
-                            ans[key]=None           
+                            ans[key]=None    
                 except TypeError:
                     print (key)
                     raise
